@@ -1,4 +1,4 @@
-function [ totalHamiltonian, kineticHamiltonian,  potentialHamiltonian] = hubbardHamiltonian_2D( t, U, Lx, Ly, noOfUp, noOfDn, NUM_CORES )
+function totalHamiltonian = hubbardHamiltonian_2D( t, U, Lx, Ly, noOfUp, noOfDn, NUM_CORES )
 
 noOfSites = Lx * Ly;
 
