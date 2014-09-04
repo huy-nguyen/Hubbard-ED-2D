@@ -1,5 +1,13 @@
 function totalHamiltonian = hubbardHamiltonian_2D( t, U, Lx, Ly, noOfUp, noOfDn, NUM_CORES )
 
+if (Lx==2) || (Ly==2)
+   error('Lx and Ly must be both greater than 2.'); 
+   % If we want to deal with the case of Lx = 2 or Ly = 2, put this statement:
+   % kinetic = unique( kinetic, 'rows', 'stable'); 
+   % before the definition
+   % kineticHamiltonian = sparse( ...)
+   % at the end of this function
+end
 noOfSites = Lx * Ly;
 
 totalNoOfPossiblestates = nchoosek( noOfSites, noOfUp) * nchoosek( noOfSites, noOfDn);
@@ -78,7 +86,7 @@ end
 
 max_kinetic_num_non_zero_per_iteration = totalNoOfPossiblestates * 4 * (noOfUp + noOfDn);
 actual_num_non_zero_elems_kinetic = 0;
-parfor core_counter_kinetic = 1:NUM_CORES  % will be parfor   
+for core_counter_kinetic = 1:NUM_CORES  % will be parfor   
     fprintf('        Worker %d: Begin.\n', core_counter_kinetic)
     [ combinedBasis_inside_parfor, num_of_states_inside_parfor,dummy2, totalNoOfDnStates, upStates, dnStates ] = generateBasis( noOfSites, noOfUp, noOfDn );
     splitsize = 1 / NUM_CORES * num_of_states_inside_parfor;
@@ -353,14 +361,14 @@ for i_core =1:NUM_CORES
                                             = current_aux_file_object.kinetic_per_core;
     last_non_zero_elem_in_kinetic = last_non_zero_elem_in_kinetic + nrows;
 end
+    
 kineticHamiltonian = sparse( kinetic(:,1), kinetic(:,2), kinetic(:,3), totalNoOfPossiblestates, totalNoOfPossiblestates);
 fprintf('    Done with assembling the kinetic Hamiltonian at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
 %% TOTAL HAMILTONIAN:
 totalHamiltonian=kineticHamiltonian+potentialHamiltonian;
 
 for i_core =1:NUM_CORES    
-delete( aux_file_names_potential{i_core}, aux_file_names_kinetic{i_core});
-
+    delete( aux_file_names_potential{i_core}, aux_file_names_kinetic{i_core});
 end
 
 end
