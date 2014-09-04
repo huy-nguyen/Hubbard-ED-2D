@@ -86,7 +86,7 @@ end
 
 max_kinetic_num_non_zero_per_iteration = totalNoOfPossiblestates * 4 * (noOfUp + noOfDn);
 actual_num_non_zero_elems_kinetic = 0;
-for core_counter_kinetic = 1:NUM_CORES  % will be parfor   
+parfor core_counter_kinetic = 1:NUM_CORES  % will be parfor   
     fprintf('        Worker %d: Begin.\n', core_counter_kinetic)
     [ combinedBasis_inside_parfor, num_of_states_inside_parfor,dummy2, totalNoOfDnStates, upStates, dnStates ] = generateBasis( noOfSites, noOfUp, noOfDn );
     splitsize = 1 / NUM_CORES * num_of_states_inside_parfor;
