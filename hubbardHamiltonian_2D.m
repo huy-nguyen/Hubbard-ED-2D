@@ -358,6 +358,11 @@ fprintf('    Done with assembling the kinetic Hamiltonian at time %s.\n', datest
 %% TOTAL HAMILTONIAN:
 totalHamiltonian=kineticHamiltonian+potentialHamiltonian;
 
+for i_core =1:NUM_CORES    
+delete( aux_file_names_potential{i_core}, aux_file_names_kinetic{i_core});
+
+end
+
 end
 
 function save_kinetic_Hamiltonian_segment(aux_file_name, kinetic_per_core)
