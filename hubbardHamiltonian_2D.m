@@ -21,11 +21,12 @@ aux_file_names_potential{i_core} = strcat('aux_potential_',num2str(noOfSites, '%
                                     '_sites_',num2str(noOfUp, '%02d'),...
                                     'u',num2str(noOfDn, '%02d'),...
                                     '_U_',num2str(U, '%4.2f'),...
-                                    '_t_',num2str(t),...                                       
-                                    '_num_', num2str(i_core, '%02d'),...
-                                    ' ',datestr(now,'_yymmdd_HHMMSS'),'.mat');
+                                    '_t_',num2str(t),...                                                                           
+                                    ' ',datestr(now,'_yymmdd_HHMMSS'),...
+                                    '_num_', num2str(i_core, '%02d'),'.mat');
 save(aux_file_names_potential{i_core}, 't', 'U', 'noOfSites', 'noOfUp', 'noOfDn', 'i_core', '-v7.3');
 end
+fprintf('    Aux file prefix: %s\n', aux_file_names_potential{1}(1:54))
 
 parfor core_counter_potential=1:NUM_CORES
     fprintf('        Worker %d: Begin.\n', core_counter_potential)
@@ -71,22 +72,25 @@ clearvars upSectorDec dnSectorDec upSector dnSector potential_sparse_input;
 
 %% KINETIC HAMILTONIAN:
 
-aux_file_names_kinetic = {};
+NUM_FILES_TO_SPLIT_INTO = 10;
+
+% aux_file_names_kinetic = {};
 fprintf('    Generating the kinetic Hamiltonian at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
-for i_core =1:NUM_CORES    
-aux_file_names_kinetic{i_core} = strcat('aux_kinetic_',num2str(noOfSites, '%02d'),...
+
+aux_file_name_kinetic_prefix = strcat('aux_kinetic_',num2str(noOfSites, '%02d'),...
                                     '_sites_',num2str(noOfUp, '%02d'),...
                                     'u',num2str(noOfDn, '%02d'),...
                                     '_U_',num2str(U, '%4.2f'),...
-                                    '_t_',num2str(t),...                                       
-                                    '_num_', num2str(i_core, '%02d'),...
-                                    ' ',datestr(now,'_yymmdd_HHMMSS'),'.mat');
-save(aux_file_names_kinetic{i_core}, 't', 'U', 'noOfSites', 'noOfUp', 'noOfDn', 'i_core');
-end
+                                    '_t_',num2str(t),...
+                                    ' ',datestr(now,'_yymmdd_HHMMSS'),'_');
+
+fprintf('    Aux file prefix: %s\n', aux_file_name_kinetic_prefix);
 
 max_kinetic_num_non_zero_per_iteration = totalNoOfPossiblestates * 4 * (noOfUp + noOfDn);
 actual_num_non_zero_elems_kinetic = 0;
-parfor core_counter_kinetic = 1:NUM_CORES  % will be parfor   
+list_of_aux_file_kinetic_OUTSIDE_parfor = {};
+parfor core_counter_kinetic = 1:NUM_CORES  % will be parfor 
+    list_of_aux_file_kinetic_INSIDE_parfor = {};
     fprintf('        Worker %d: Begin.\n', core_counter_kinetic)
     [ combinedBasis_inside_parfor, num_of_states_inside_parfor,dummy2, totalNoOfDnStates, upStates, dnStates ] = generateBasis( noOfSites, noOfUp, noOfDn );
     splitsize = 1 / NUM_CORES * num_of_states_inside_parfor;
@@ -345,17 +349,32 @@ parfor core_counter_kinetic = 1:NUM_CORES  % will be parfor
     kinetic_core_cols = kinetic_core_cols( 1:length(kinetic_core_rows));
     kinetic_core_elems = kinetic_core_elems( 1:length(kinetic_core_rows));    
     kinetic_per_core = horzcat(kinetic_core_rows, kinetic_core_cols, kinetic_core_elems); 
-    save_kinetic_Hamiltonian_segment( aux_file_names_kinetic{core_counter_kinetic}, kinetic_per_core);
+    nnz_kinetic_per_core = length(kinetic_core_rows);
+    
+    for i_save_file = 1:NUM_FILES_TO_SPLIT_INTO
+        splitsize_saving_kinetic = 1 / NUM_FILES_TO_SPLIT_INTO * nnz_kinetic_per_core;
+        start_index = floor(round((i_save_file-1)*splitsize_saving_kinetic)) + 1;
+        stop_index = floor(round((i_save_file)*splitsize_saving_kinetic));
+        saved_file_name = save_kinetic_Hamiltonian_segment(kinetic_per_core(start_index:stop_index,:), aux_file_name_kinetic_prefix, core_counter_kinetic, i_save_file);
+        list_of_aux_file_kinetic_INSIDE_parfor{end+1} = saved_file_name;
+    end
+    saved_file_name = [];
+    list_of_aux_file_kinetic_OUTSIDE_parfor{core_counter_kinetic} = list_of_aux_file_kinetic_INSIDE_parfor;
+    list_of_aux_file_kinetic_INSIDE_parfor = [];
+    
+%     save_kinetic_Hamiltonian_segment( aux_file_names_kinetic{core_counter_kinetic}, kinetic_per_core);
     actual_num_non_zero_elems_kinetic = actual_num_non_zero_elems_kinetic + length(kinetic_core_rows);
     fprintf('        Worker %d: End.\n', core_counter_kinetic)
 end
 
+aux_file_names_kinetic = [list_of_aux_file_kinetic_OUTSIDE_parfor{:}];
+num_files_saved_inside_kinetic_parfor = length(aux_file_names_kinetic);
 
 fprintf('    Assembling the kinetic Hamiltonian at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
 kinetic = zeros( actual_num_non_zero_elems_kinetic, 3);
 last_non_zero_elem_in_kinetic = 0;
-for i_core =1:NUM_CORES 
-    current_aux_file_object = matfile( aux_file_names_kinetic{i_core} );
+for i_saved_file =1:num_files_saved_inside_kinetic_parfor 
+    current_aux_file_object = matfile( aux_file_names_kinetic{i_saved_file} );
     [nrows, dummy] = size(current_aux_file_object, 'kinetic_per_core');
     kinetic( (last_non_zero_elem_in_kinetic+1): (last_non_zero_elem_in_kinetic+nrows) , :) ...
                                             = current_aux_file_object.kinetic_per_core;
@@ -367,14 +386,18 @@ fprintf('    Done with assembling the kinetic Hamiltonian at time %s.\n', datest
 %% TOTAL HAMILTONIAN:
 totalHamiltonian=kineticHamiltonian+potentialHamiltonian;
 
-for i_core =1:NUM_CORES    
-    delete( aux_file_names_potential{i_core}, aux_file_names_kinetic{i_core});
+for i_file_counter =1:num_files_saved_inside_kinetic_parfor    
+    delete( aux_file_names_kinetic{i_file_counter});
+end
+for i_core = 1:NUM_CORES
+   delete(aux_file_names_potential{i_core} );
 end
 
 end
 
-function save_kinetic_Hamiltonian_segment(aux_file_name, kinetic_per_core)
-save(aux_file_name, '-append', 'kinetic_per_core', '-v7.3');
+function saved_file_name = save_kinetic_Hamiltonian_segment(kinetic_per_core, prefix, core_number, suffix)
+saved_file_name = strcat(prefix, num2str(core_number, '%03d'), '_', num2str(suffix, '%03d'), '.mat');
+save(saved_file_name, 'kinetic_per_core', '-v7.3');
 end
 
 function save_potential_Hamiltonian_segment(aux_file_name, results_in_core_loop)

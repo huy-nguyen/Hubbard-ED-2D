@@ -70,7 +70,7 @@ if (noOfUp < noOfSites) && (noOfDn < noOfSites)
     fprintf('Begin diagonalizing firstHamiltonian at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
     [groundState,groundStateEnergy]=eigs( firstHamiltonian,...
                                                1,'sa'); %ASSUMING THAT THE HAMILTONIAN IS REAL SYMMETRIC    
-    save(aux_file_name, 'groundState', '-mat', '-v7.3'); 
+    save(aux_file_name, 'groundState', 'groundStateEnergy', '-mat', '-v7.3'); 
     aux_file_object = matfile(aux_file_name);
     
     fprintf('Done with diagonalization at time %s.\n', datestr(now,'yymmdd_HHMMSS'))                    
@@ -236,6 +236,8 @@ fprintf('Finish all calculations at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
 if strcmp( need_profiling, 'Yes' )
     profsave(profile('info'), profile_directory_name);
 end
+
+delete( aux_file_name);
 end
 
 function loaded_ground_state = load_first_Hamiltonian_ground_state(aux_file_object)
