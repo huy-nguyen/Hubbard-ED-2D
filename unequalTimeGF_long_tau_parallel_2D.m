@@ -48,6 +48,7 @@ for i_filename = 1:length(list_of_taus)
                                         '_t_',num2str(t),...
                                         '_eigen_', num2str(NUM_OF_EIGEN_VALUES, '%04d'),...
                                         ' ',datestr(now,'_yymmdd_HHMMSS'),'.mat');
+    save(output_files{i_filename},'Lx', 'Ly', 'noOfUp','noOfDn','U','tau','t','method', 'commit_number', '-v7.3'); 
 end
     
 
@@ -75,9 +76,9 @@ if (noOfUp < noOfSites) && (noOfDn < noOfSites)
     
     fprintf('Done with diagonalization at time %s.\n', datestr(now,'yymmdd_HHMMSS'))                    
     
-    for i_f = 1:length(output_files)
-        save(output_files{i_f},'groundState','groundStateEnergy', 'firstHamiltonian', '-v7.3');            
-    end     
+%     for i_f = 1:length(output_files)
+%         save(output_files{i_f},'groundState','groundStateEnergy', 'firstHamiltonian', '-v7.3');            
+%     end     
     clearvars i_f;
     clearvars firstHamiltonian groundState;
     
@@ -99,9 +100,9 @@ if (noOfUp < noOfSites) && (noOfDn < noOfSites)
         eigenValues_up = diag(eigenValues_up);
         fprintf('Done with diagonalization at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
         save(aux_file_name, '-append', 'eigenVectors_up', '-mat', '-v7.3'); 
-        for i_f = 1:length(output_files)
-            save(output_files{i_f},'-append','eigenValues_up','eigenVectors_up', 'secondHamiltonianUp', '-v7.3');            
-        end     
+%         for i_f = 1:length(output_files)
+%             save(output_files{i_f},'-append','eigenValues_up','eigenVectors_up', 'secondHamiltonianUp', '-v7.3');            
+%         end     
         clearvars i_f secondHamiltonianUp;
 
         fprintf('Begin spin-up Greens function calculations at time %s.\n', datestr(now,'yymmdd_HHMMSS'))    
@@ -167,9 +168,9 @@ if (noOfUp < noOfSites) && (noOfDn < noOfSites)
         eigenValues_dn = diag(eigenValues_dn);
         fprintf('Done with diagonalization at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
         save(aux_file_name, '-append', 'eigenVectors_dn', '-mat', '-v7.3');
-        for i_f = 1:length(output_files)
-            save(output_files{i_f},'-append','eigenValues_dn','eigenVectors_dn', 'secondHamiltonianDn', '-v7.3');            
-        end     
+%         for i_f = 1:length(output_files)
+%             save(output_files{i_f},'-append','eigenValues_dn','eigenVectors_dn', 'secondHamiltonianDn', '-v7.3');            
+%         end     
         clearvars i_f secondHamiltonianDn;
 
         fprintf('Begin spin-down Greens function calculations at time %s.\n', datestr(now,'yymmdd_HHMMSS'))    
@@ -229,7 +230,7 @@ end
 
 for i_f = 1:length(output_files)
     tau = list_of_taus(i_f);
-    save(output_files{i_f},'-append','Lx', 'Ly', 'noOfUp','noOfDn','U','tau','t','time', 'method', 'commit_number', '-v7.3');            
+    save(output_files{i_f},'-append', 'time', '-v7.3');            
 end     
 fprintf('Finish all calculations at time %s.\n', datestr(now,'yymmdd_HHMMSS'))
 
